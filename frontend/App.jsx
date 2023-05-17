@@ -1,6 +1,11 @@
-import * as React from 'react';
+import * as React from 'react'
 import './App.css'
 import RssTable from './RssTable'
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels"
+import TreeView from '@mui/lab/TreeView';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import TreeItem from '@mui/lab/TreeItem';
 
 export default function App() {
 
@@ -20,7 +25,7 @@ export default function App() {
     console.log("Setting rowsData to ")
     console.log(newRowsData)
   }
-  
+
   function deleteEntries() {
     setRowsData([])
     console.log("Setting rowsData to []")
@@ -65,10 +70,34 @@ export default function App() {
 
   return (
     <>
-      <RssTable rowsData={rowsData} setRowsData={setRowsData} />
-      <button onClick={() => addEntries([{ author: "this is a test", title: "does it work?", date: "2023-03-06T15:00:36+00:00" }])}>AddEntry</button>
-      <button onClick={() => deleteEntries()}>Delete</button>
-      <button onClick={() => loadFeed()}>Test</button>
+      <PanelGroup direction="horizontal" className='panelgroup'>
+        <Panel defaultSize={20} minSize={20} className='panel sidebar'>
+          <TreeView
+            aria-label="file system navigator"
+            defaultCollapseIcon={<ExpandMoreIcon />}
+            defaultExpandIcon={<ChevronRightIcon />}
+            sx={{ height: 240, flexGrow: 1, maxWidth: 400, overflowY: 'auto' }}
+          >
+            <TreeItem nodeId="1" label="Applications">
+              <TreeItem nodeId="2" label="Calendar" />
+            </TreeItem>
+            <TreeItem nodeId="5" label="Documents">
+              <TreeItem nodeId="10" label="OSS" />
+              <TreeItem nodeId="6" label="MUI">
+                <TreeItem nodeId="8" label="index.js" />
+              </TreeItem>
+            </TreeItem>
+          </TreeView>
+        </Panel>
+        <PanelResizeHandle className='panelResizeHandle' />
+        <Panel minSize={30} className='panel'>
+
+          <RssTable rowsData={rowsData} setRowsData={setRowsData} />
+          <button onClick={() => addEntries([{ author: "this is a test", title: "does it work?", date: "2023-03-06T15:00:36+00:00" }])}>AddEntry</button>
+          <button onClick={() => deleteEntries()}>Delete</button>
+          <button onClick={() => loadFeed("Youtube/Bandoot")}>Test</button>
+        </Panel>
+      </PanelGroup>
     </>
   )
 }

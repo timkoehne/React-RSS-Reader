@@ -43,3 +43,18 @@ table, td, th {
   padding-left: 10px;
   padding-right: 10px;
 }
+
+.panelgroup{
+}
+
+.panel{
+  padding: 10px;
+}
+
+.panelResizeHandle{
+  background-color: #000000;
+  width: 5px;
+}
+
+.sidebar{
+}
