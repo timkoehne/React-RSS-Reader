@@ -1,9 +1,11 @@
 
 const express = require("express");
-const fs = require('fs');
-const util = require('util');
 const PORT = process.env.PORT || 3001;
 const app = express();
+
+const opmlReader = require('./opmlReader.cjs');
+
+var feeds = []
 
 app.get("/rss", (req, res) => {
   console.log("Responding to " + req.url)
@@ -17,11 +19,18 @@ app.get("/rss", (req, res) => {
     });
 });
 
+app.get("/feedlist", (req, res) => {
+  console.log("Responding to " + req.url)
+  res.json(feeds)
+});
+
+
 app.get("/api", (req, res) => {
   console.log("Responding to " + req.url)
   res.json({ message: "Hello from server!" });
 });
 
 app.listen(PORT, () => {
+  feeds = opmlReader.createFeedsDict()
   console.log(`Server listening on ${PORT}`);
 });
