@@ -4,6 +4,7 @@ export default function RssTableRow({ rowsData, deleteTableRows }) {
         rowsData.map((data, index) => {
             const { author, authorUrl, title, date, url } = data;
 
+
             const dateFormatParam = {
                 year: "numeric",
                 month: "2-digit",
@@ -12,6 +13,8 @@ export default function RssTableRow({ rowsData, deleteTableRows }) {
                 minute: "2-digit",
                 second: "2-digit",
             }
+
+
 
             return (
                 <tr key={index}>

@@ -118,7 +118,7 @@ function mapToTree(treeData) {
   })
 }
 
-export default function IconExpansionTreeView({ treeData }) {
+export default function IconExpansionTreeView({ treeData, onTreeSelection }) {
 
   function findNode(searchId, inData) {
     //console.log("searching for nodeId " + searchId)
@@ -135,6 +135,15 @@ export default function IconExpansionTreeView({ treeData }) {
     }
   }
 
+  function findPath(searchId) {
+    var path = ""
+    var node = findNode(searchId, treeData)
+     if (node.parentId !== "root") {
+       path = findPath(node.parentId) + "/" + path
+     }
+    return path + node.label
+  }
+
   return (
 
     <TreeView
@@ -143,7 +152,7 @@ export default function IconExpansionTreeView({ treeData }) {
       defaultExpandIcon={<ChevronRightIcon />}
       defaultExpanded={["0"]}
       //onNodeToggle={}
-      onNodeSelect={(event, nodeId) => console.log(findNode(nodeId, treeData))}
+      onNodeSelect={(event, nodeId) => onTreeSelection(findPath(nodeId))}
       sx={{ height: "100%", flexGrow: 1, maxWidth: 400, overflowY: 'auto', 'textAlign': 'left' }}
     >
       {mapToTree(treeData)}

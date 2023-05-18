@@ -1,7 +1,7 @@
-import * as React from 'react'
+import * as React from 'react';
 import './App.css'
 import RssTable from './RssTable'
-import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels"
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import IconExpansionTreeView from './IconExpansionTreeView';
 
 export default function App() {
@@ -19,6 +19,7 @@ export default function App() {
         setTreeData(feedList)
       });
   }, [])
+
 
   const [rowsData, setRowsData] = React.useState(() => {
     const localValue = localStorage.getItem("ITEMS")
@@ -42,48 +43,62 @@ export default function App() {
     console.log("Setting rowsData to []")
   }
 
-  function loadFeed() {
-    //TODO handle clicking on folders
-    //probably in backend
+  function xmlParseSingleFeed(feeddata){
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(feeddata, "text/xml")
+    const errorNode = doc.querySelector("parsererror")
+    if (errorNode) {
+      console.log("error while parsing");
+    } else {
+      var entries = []
+      var xmlEntries = doc.getElementsByTagName("entry")
 
-    fetch("http://localhost:3001/rss")
+      //console.log(xmlEntries)
+
+      for (var i = 0; i < xmlEntries.length; i++) {
+        var title = xmlEntries[i].children[3].textContent
+        var url = xmlEntries[i].children[4].attributes["href"]
+        var authorUrl = xmlEntries[i].children[5].children[1].textContent
+        var author = xmlEntries[i].children[5].children[0].textContent
+        var date = xmlEntries[i].children[6].textContent
+
+        entries.push({ "author": author, "authorUrl": authorUrl, "title": title, "date": date, 'url': url.value })
+      }
+      return entries
+    }
+  }
+
+
+  function loadFeed(feedname) {
+    console.log(feedname)
+
+    fetch("http://localhost:3001/rss?feed=" + feedname)
       .then((res) => res.json())
       .then((feeddata) => {
 
-        var xml = feeddata
-
-        const parser = new DOMParser()
-        const doc = parser.parseFromString(xml, "text/xml")
-        const errorNode = doc.querySelector("parsererror")
-        if (errorNode) {
-          console.log("error while parsing");
-        } else {
-          var entries = []
-          var xmlEntries = doc.getElementsByTagName("entry")
-
-          //show entries
-          //console.log(xmlEntries)
-
-          for (var i = 0; i < xmlEntries.length; i++) {
-            var title = xmlEntries[i].children[3].textContent
-            var url = xmlEntries[i].children[4].attributes["href"]
-            var authorUrl = xmlEntries[i].children[5].children[1].textContent
-            var author = xmlEntries[i].children[5].children[0].textContent
-            var date = xmlEntries[i].children[6].textContent
-
-            entries.push({ "author": author, "authorUrl": authorUrl, "title": title, "date": date, 'url': url.value })
+        var newEntries = []
+        console.log(typeof (feeddata))
+        if (typeof (feeddata) == "string") {
+          newEntries = xmlParseSingleFeed(feeddata)
+        }else if(typeof(feeddata) == "object"){
+          console.log(feeddata.length)
+          for(var i = 0; i < feeddata.length; i++){
+            newEntries = [...newEntries, ...xmlParseSingleFeed(feeddata[i])]
           }
-          setRowsData(entries)
         }
+
+        setRowsData(newEntries)
       });
   }
 
 
+
   return (
+
     <>
       <PanelGroup direction="horizontal" className='panelgroup'>
         <Panel defaultSize={20} minSize={20} className='panel sidebar'>
-          <IconExpansionTreeView treeData={treeData}/>
+          <IconExpansionTreeView treeData={treeData} onTreeSelection={loadFeed} />
         </Panel>
         <PanelResizeHandle className='panelResizeHandle' />
         <Panel minSize={30} className='panel'>
