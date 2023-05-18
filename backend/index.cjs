@@ -4,25 +4,26 @@ const app = express();
 
 const opmlReader = require('./opmlReader.cjs');
 
-var feeds = []
+var feedList = []
+var lastAccessTime = []
 
-function findFeedsInFolder(feedObject, xmlUrls = []) {
+function findFeedsInFolder(feedObject, feedsInFolder = []) {
 
   if (Object.hasOwn(feedObject, "xmlUrl")) {
-    xmlUrls.push(feedObject["xmlUrl"])
+    feedsInFolder.push(feedObject["xmlUrl"])
   }
 
   if (Object.hasOwn(feedObject, "children")) {
     for (var i = 0; i < feedObject["children"].length; i++) {
-      xmlUrls = [...xmlUrls, ...findFeedsInFolder(feedObject["children"][i])]
+      feedsInFolder = [...feedsInFolder, ...findFeedsInFolder(feedObject["children"][i])]
     }
   }
 
-  return xmlUrls
+  return feedsInFolder
 }
 
 function findFeed(feedPath, inData) {
-  //feedPath looks like this: Folder/Feed
+  //feedPath looks like this: Folder/Subfolder/Feed
   var pathLevelSeperatorPosition = feedPath.indexOf("/") > -1 ? feedPath.indexOf("/") : feedPath.length
   var pathLevel = feedPath.slice(0, pathLevelSeperatorPosition)
   var remainingPath = feedPath.slice(pathLevelSeperatorPosition + 1)
@@ -41,48 +42,80 @@ function findFeed(feedPath, inData) {
 
 
 
-async function waitForNextUrl(urls){
+async function getFromUrls(urls){
 
   if(urls.length > 0){
     console.log(urls.length + " remaining")
     // console.log(urls[0])
-    var feed = fetch(urls[0])
-    .then((response) => response.text())
-    .then((text) => {
-      return text
-    });
+    var feed = await getDataFromCacheOrUrl(urls[0])
 
     await new Promise(r => setTimeout(r, 10))
     urls.splice(0, 1)
-    return  [await feed, ...(await waitForNextUrl(urls))]
+    return  [feed, ...(await getFromUrls(urls))]
   }else{
     return []
   }
   
 }
 
+async function getFromUrl(url){
+  var content = fetch(url)
+  .then((response) => response.text())
+  .then((text) => {
+    lastAccessTime[url] = {"time": new Date(), "content": text}
+    return text
+  });
+  return await content
+}
+
+function recentCacheAvailable(xmlUrl){
+  if(Object.hasOwn(lastAccessTime, xmlUrl)){
+    const currentTime = new Date()
+    const timeDifference = Math.abs(currentTime - lastAccessTime[xmlUrl]["time"])
+    const minutes = Math.floor((timeDifference/1000)/60);
+
+    if(minutes < 30){
+      console.log("found cached data from " + minutes + " minutes ago")
+      return true
+    }else{
+      console.log("cached data found but it is " + minutes + " minutes old")
+      return false
+    }
+  }
+}
+
+async function getDataFromCacheOrUrl(url){
+  if(recentCacheAvailable(url)){
+    console.log("Responding with cached data")
+    return lastAccessTime[url]["content"]
+  }else{
+    console.log("Fetching data from " + url)
+    var feed = getFromUrl(url)
+    console.log("Responding with fetched data")
+    return await feed
+  }
+}
 
 app.get("/rss", async (req, res) => {
+  console.log("-------------------------")
   console.log("Responding to " + req.url)
   var feedPath = req.query.feed
-  console.log("Getting Feed for " + feedPath)
 
-  var feedObject = findFeed(feedPath, feeds)
+  console.log("Getting Feed for " + feedPath)
+  var feedObject = findFeed(feedPath, feedList)
 
   //single feed
   if (Object.hasOwn(feedObject, "xmlUrl")) {
     var xmlUrl = feedObject["xmlUrl"]
-    fetch(xmlUrl)
-      .then((response) => response.text())
-      .then((text) => {
-        res.json(text)
-      });
+
+    var data = await getDataFromCacheOrUrl(xmlUrl)
+    res.json(data)
 
     //folder of feeds
   } else {
     var xmlUrls = findFeedsInFolder(feedObject)
 
-    var allFeeds = await waitForNextUrl(xmlUrls)
+    var allFeeds = await getFromUrls(xmlUrls)
     res.json(allFeeds)
 
     console.log(allFeeds.length)
@@ -95,7 +128,7 @@ app.get("/rss", async (req, res) => {
 
 app.get("/feedlist", (req, res) => {
   console.log("Responding to " + req.url)
-  res.json(feeds)
+  res.json(feedList)
 });
 
 app.get("/api", (req, res) => {
@@ -105,7 +138,7 @@ app.get("/api", (req, res) => {
 
 app.listen(PORT, () => {
 
-  feeds = opmlReader.createFeedsDict()
+  feedList = opmlReader.createFeedsList()
 
   console.log(`Server listening on ${PORT}`);
 });

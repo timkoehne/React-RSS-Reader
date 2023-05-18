@@ -12,10 +12,9 @@ function RssTable({ rowsData, setRowsData }) {
             <table className="table">
                 <thead>
                     <tr>
-                        <th>Author</th>
-                        <th>Title</th>
-                        <th>Date</th>
-                        <th><button className="btn btn-outline-success">+</button></th>
+                        <th className="authorColumn">Author</th>
+                        <th className="titleColumn">Title</th>
+                        <th className="dateColumn">Date</th>
                     </tr>
                 </thead>
                 <tbody>

@@ -34,7 +34,7 @@ function selectOperation(remainingFeedsObject, parentId = "root") {
     }
 }
 
-function createFeedsDict() {
+function createFeedsList() {
 
     var feedsObject = readOPML()
     //console.log(util.inspect(feedsObject, false, null))
@@ -67,5 +67,5 @@ function readOPML() {
 
 
 module.exports = {
-    createFeedsDict
+    createFeedsList
 }

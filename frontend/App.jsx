@@ -43,7 +43,7 @@ export default function App() {
     console.log("Setting rowsData to []")
   }
 
-  function xmlParseSingleFeed(feeddata){
+  function xmlParseSingleFeed(feeddata) {
     const parser = new DOMParser()
     const doc = parser.parseFromString(feeddata, "text/xml")
     const errorNode = doc.querySelector("parsererror")
@@ -75,18 +75,26 @@ export default function App() {
     fetch("http://localhost:3001/rss?feed=" + feedname)
       .then((res) => res.json())
       .then((feeddata) => {
-
         var newEntries = []
-        console.log(typeof (feeddata))
+
+        //single feed
         if (typeof (feeddata) == "string") {
           newEntries = xmlParseSingleFeed(feeddata)
-        }else if(typeof(feeddata) == "object"){
+
+        //folder of feeds
+        } else if (typeof (feeddata) == "object") {
           console.log(feeddata.length)
-          for(var i = 0; i < feeddata.length; i++){
+          for (var i = 0; i < feeddata.length; i++) {
             newEntries = [...newEntries, ...xmlParseSingleFeed(feeddata[i])]
           }
         }
 
+        newEntries.sort(function (entry1, entry2) {
+          const date1 = new Date(entry1["date"])
+          const date2 = new Date(entry2["date"])
+          return date2 - date1
+        })
+        console.log("Showing " + newEntries.length + " entries")
         setRowsData(newEntries)
       });
   }
