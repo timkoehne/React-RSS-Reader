@@ -40,10 +40,7 @@ function findFeed(feedPath, inData) {
   return inData
 }
 
-
-
 async function getFromUrls(urls){
-
   if(urls.length > 0){
     console.log(urls.length + " remaining")
     // console.log(urls[0])
@@ -55,7 +52,7 @@ async function getFromUrls(urls){
   }else{
     return []
   }
-  
+
 }
 
 async function getFromUrl(url){
@@ -107,23 +104,16 @@ app.get("/rss", async (req, res) => {
   //single feed
   if (Object.hasOwn(feedObject, "xmlUrl")) {
     var xmlUrl = feedObject["xmlUrl"]
-
     var data = await getDataFromCacheOrUrl(xmlUrl)
     res.json(data)
 
     //folder of feeds
   } else {
     var xmlUrls = findFeedsInFolder(feedObject)
-
     var allFeeds = await getFromUrls(xmlUrls)
-    res.json(allFeeds)
-
     console.log(allFeeds.length)
-
+    res.json(allFeeds)
   }
-
-
-
 });
 
 app.get("/feedlist", (req, res) => {
@@ -137,8 +127,6 @@ app.get("/api", (req, res) => {
 });
 
 app.listen(PORT, () => {
-
   feedList = opmlReader.createFeedsList()
-
   console.log(`Server listening on ${PORT}`);
 });

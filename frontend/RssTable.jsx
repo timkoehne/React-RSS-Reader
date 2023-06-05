@@ -1,11 +1,5 @@
 import RssTableRow from "./RssTableRow"
-function RssTable({ rowsData, setRowsData }) {
-
-    const deleteTableRows = (index) => {
-        const rows = [...rowsData];
-        rows.splice(index, 1);
-        setRowsData(rows);
-    }
+function RssTable({ rowsData }) {
 
     return (
         <div className="container">
@@ -18,7 +12,7 @@ function RssTable({ rowsData, setRowsData }) {
                     </tr>
                 </thead>
                 <tbody>
-                    <RssTableRow rowsData={rowsData} deleteTableRows={deleteTableRows} />
+                    <RssTableRow rowsData={rowsData} />
                 </tbody>
             </table>
         </div>

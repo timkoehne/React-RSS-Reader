@@ -1,4 +1,4 @@
-export default function RssTableRow({ rowsData, deleteTableRows }) {
+export default function RssTableRow({ rowsData }) {
 
     return (
         rowsData.map((data, index) => {
@@ -19,7 +19,6 @@ export default function RssTableRow({ rowsData, deleteTableRows }) {
                     <td className=" titleColumn"><a name="title" className="form-control" href={url}> {title}</a></td>
                     <td className="dateColumn"><div name="date" className="form-control" > {new Date(date).toLocaleString("de-DE", dateFormatParam)}</div></td>
                 </tr>
-
             )
         })
 

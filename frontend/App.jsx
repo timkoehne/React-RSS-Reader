@@ -3,23 +3,26 @@ import './App.css'
 import RssTable from './RssTable'
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import IconExpansionTreeView from './IconExpansionTreeView';
+import { hasFeedCached, addFeedToCache, getFeedFromCache, loadFeedCache } from "./localCaching";
 
 export default function App() {
+
+  const [selectedPath, setSelectedPath] = React.useState("")
 
   const [treeData, setTreeData] = React.useState(() => [])
 
   React.useEffect(() => {
-    var feedList
     fetch("http://localhost:3001/feedlist")
       .then((res) => res.json())
-      .then((feeddata) => {
-        feedList = feeddata
+      .then((feedlist) => {
         console.log("feedList:")
-        console.log(feedList)
-        setTreeData(feedList)
+        console.log(feedlist)
+        setTreeData(feedlist)
       });
-  }, [])
 
+      loadFeedCache()
+
+  }, [])
 
   const [rowsData, setRowsData] = React.useState(() => {
     const localValue = localStorage.getItem("ITEMS")
@@ -54,7 +57,6 @@ export default function App() {
       var xmlEntries = doc.getElementsByTagName("entry")
 
       //console.log(xmlEntries)
-
       for (var i = 0; i < xmlEntries.length; i++) {
         var title = xmlEntries[i].children[3].textContent
         var url = xmlEntries[i].children[4].attributes["href"]
@@ -64,57 +66,59 @@ export default function App() {
 
         entries.push({ "author": author, "authorUrl": authorUrl, "title": title, "date": date, 'url': url.value })
       }
+
       return entries
     }
   }
 
-
-  function loadFeed(feedname) {
+  function loadFeed(feedname, bypassCache=false) {
+    setSelectedPath(feedname)
     console.log(feedname)
 
-    fetch("http://localhost:3001/rss?feed=" + feedname)
-      .then((res) => res.json())
-      .then((feeddata) => {
-        var newEntries = []
+    if (hasFeedCached(feedname) && !bypassCache) {
+      console.log("Showing Cached feed")
+      setRowsData(getFeedFromCache(feedname))
+    } else {
+      fetch("http://localhost:3001/rss?feed=" + feedname)
+        .then((res) => res.json())
+        .then((feeddata) => {
+          var newEntries = []
 
-        //single feed
-        if (typeof (feeddata) == "string") {
-          newEntries = xmlParseSingleFeed(feeddata)
+          //single feed
+          if (typeof (feeddata) == "string") {
+            newEntries = xmlParseSingleFeed(feeddata)
 
-        //folder of feeds
-        } else if (typeof (feeddata) == "object") {
-          console.log(feeddata.length)
-          for (var i = 0; i < feeddata.length; i++) {
-            newEntries = [...newEntries, ...xmlParseSingleFeed(feeddata[i])]
+            //folder of feeds
+          } else if (typeof (feeddata) == "object") {
+            console.log(feeddata.length)
+            for (var i = 0; i < feeddata.length; i++) {
+              newEntries = [...newEntries, ...xmlParseSingleFeed(feeddata[i])]
+            }
           }
-        }
 
-        newEntries.sort(function (entry1, entry2) {
-          const date1 = new Date(entry1["date"])
-          const date2 = new Date(entry2["date"])
-          return date2 - date1
-        })
-        console.log("Showing " + newEntries.length + " entries")
-        setRowsData(newEntries)
-      });
+          newEntries.sort(function (entry1, entry2) {
+            const date1 = new Date(entry1["date"])
+            const date2 = new Date(entry2["date"])
+            return date2 - date1
+          })
+          console.log("Showing " + newEntries.length + " entries")
+          addFeedToCache(feedname, newEntries)
+          setRowsData(newEntries)
+        });
+    }
   }
 
-
-
   return (
-
     <>
       <PanelGroup direction="horizontal" className='panelgroup'>
         <Panel defaultSize={20} minSize={20} className='panel sidebar'>
+          <button onClick={() => console.log(getFeedFromCache("Youtube/Techquickie"))}>Test</button>
+          <button onClick={() => loadFeed(selectedPath, true)}>Update Feed</button>
           <IconExpansionTreeView treeData={treeData} onTreeSelection={loadFeed} />
         </Panel>
         <PanelResizeHandle className='panelResizeHandle' />
         <Panel minSize={30} className='panel'>
-
-          <RssTable rowsData={rowsData} setRowsData={setRowsData} />
-          <button onClick={() => addEntries([{ author: "this is a test", title: "does it work?", date: "2023-03-06T15:00:36+00:00" }])}>AddEntry</button>
-          <button onClick={() => deleteEntries()}>Delete</button>
-          <button onClick={() => loadFeed("Youtube/Bandoot")}>Test</button>
+          <RssTable rowsData={rowsData} />
         </Panel>
       </PanelGroup>
     </>

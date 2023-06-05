@@ -152,7 +152,9 @@ export default function IconExpansionTreeView({ treeData, onTreeSelection }) {
       defaultExpandIcon={<ChevronRightIcon />}
       defaultExpanded={["0"]}
       //onNodeToggle={}
-      onNodeSelect={(event, nodeId) => onTreeSelection(findPath(nodeId))}
+      onNodeSelect={(event, nodeId) => {
+        onTreeSelection(findPath(nodeId))
+      }}
       sx={{ height: "100%", flexGrow: 1, maxWidth: 400, overflowY: 'auto', 'textAlign': 'left' }}
     >
       {mapToTree(treeData)}
