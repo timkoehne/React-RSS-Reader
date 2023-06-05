@@ -2,12 +2,12 @@ import * as React from 'react';
 import './App.css'
 import RssTable from './RssTable'
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import IconExpansionTreeView from './IconExpansionTreeView';
+import IconExpansionTreeView, { findNode } from './IconExpansionTreeView';
 import { hasFeedCached, addFeedToCache, getFeedFromCache, loadFeedCache } from "./localCaching";
 
 export default function App() {
 
-  const [selectedPath, setSelectedPath] = React.useState("")
+  const [selectedTreeElement, setSelectedTreeElement] = React.useState({})
 
   const [treeData, setTreeData] = React.useState(() => [])
 
@@ -59,23 +59,23 @@ export default function App() {
     }
   }
 
-  function loadFeedEntries(feedname, bypassCache) {
-    setSelectedPath(feedname)
+  async function loadFeedEntries(feedname, bypassCache) {
     console.log("loadFeed: " + feedname)
-
-    var newEntries
 
     if (hasFeedCached(feedname) && !bypassCache) {
       console.log("Showing Cached feed")
       return getFeedFromCache(feedname)
     } else {
-      fetch("http://localhost:3001/rss?feed=" + feedname)
+      console.log("fetching")
+      return fetch("http://localhost:3001/rss?feed=" + feedname)
         .then((res) => res.json())
         .then((feeddata) => {
-          newEntries = []
+          var newEntries = []
 
           //single feed
+          console.log("typeof feeddata", typeof (feeddata))
           if (typeof (feeddata) == "string") {
+            console.log("single feed")
             newEntries = xmlParseSingleFeed(feeddata)
           }
 
@@ -90,8 +90,9 @@ export default function App() {
     }
   }
 
-  function loadFeed(feedname, bypassCache = false) {
-    var feedEntries = loadFeedEntries(feedname, bypassCache)
+  async function loadSingleFeed(feedname, bypassCache = false) {
+    var feedEntries = await loadFeedEntries(feedname, bypassCache)
+
     feedEntries.sort(function (entry1, entry2) {
       const date1 = new Date(entry1["date"])
       const date2 = new Date(entry2["date"])
@@ -100,21 +101,36 @@ export default function App() {
     setRowsData(feedEntries)
   }
 
-  async function loadMultipleFeeds(feednames) {
+  async function loadMultipleFeeds(feednames, bypassCache) {
     var newEntries = []
     for (var i = 0; i < feednames.length; i++) {
 
-      new Promise((resolve, reject) => {
-        newEntries.push(...loadFeedEntries(feednames[i]))
-        newEntries.sort(function (entry1, entry2) {
-          const date1 = new Date(entry1["date"])
-          const date2 = new Date(entry2["date"])
-          return date2 - date1
-        })
-        setRowsData(newEntries)
-        resolve()
-      })
+      //TODO load in background
+      newEntries.push(...await loadFeedEntries(feednames[i], bypassCache))
+    }
 
+    newEntries.sort(function (entry1, entry2) {
+      const date1 = new Date(entry1["date"])
+      const date2 = new Date(entry2["date"])
+      return date2 - date1
+    })
+    setRowsData(newEntries)
+
+
+  }
+
+  function loadFeedOrFolder(nodeId, currentPath, bypassCache = false) {
+    setSelectedTreeElement({ "nodeId": nodeId, "currentPath": currentPath })
+    console.log("test")
+
+    var children = findNode(nodeId, treeData).children
+    if (children !== undefined) { //clicked on a folder
+      loadMultipleFeeds(children.map(function (child) {
+        return currentPath + "/" + child.label
+      }), bypassCache)
+    } else {  //clicked on a feed
+      console.log("feed")
+      loadSingleFeed(currentPath, bypassCache)
     }
   }
 
@@ -123,8 +139,9 @@ export default function App() {
       <PanelGroup direction="horizontal" className='panelgroup'>
         <Panel defaultSize={20} minSize={20} className='panel sidebar'>
           <button onClick={() => console.log(getFeedFromCache("Youtube/Techquickie"))}>Test</button>
-          <button onClick={() => loadFeed(selectedPath, true)}>Update Feed</button>
-          <IconExpansionTreeView treeData={treeData} onFeedSelection={loadFeed} onFolderSelection={loadMultipleFeeds} />
+          <button onClick={() => loadFeedOrFolder(selectedTreeElement["nodeId"], selectedTreeElement["currentPath"], true)}>Update Feed</button>
+          {/* <button onClick={() => console.log(loadFeedEntries("Youtube/Felixba", true))}>bla</button> */}
+          <IconExpansionTreeView treeData={treeData} onClick={loadFeedOrFolder} />
         </Panel>
         <PanelResizeHandle className='panelResizeHandle' />
         <Panel minSize={30} className='panel'>

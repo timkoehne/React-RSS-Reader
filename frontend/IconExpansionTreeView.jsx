@@ -118,22 +118,24 @@ function mapToTree(treeData) {
   })
 }
 
-export default function IconExpansionTreeView({ treeData, onFeedSelection, onFolderSelection }) {
 
-  function findNode(searchId, inData) {
-    //console.log("searching for nodeId " + searchId)
-    for (var i = 0; i < inData.length; i++) {
-      if (inData[i].nodeId === searchId) {
-        return inData[i]
-      } else if ((inData[i].children !== undefined && inData[i].children.length > 0)) {
+export function findNode(searchId, inData) {
+  //console.log("searching for nodeId " + searchId)
+  for (var i = 0; i < inData.length; i++) {
+    if (inData[i].nodeId === searchId) {
+      return inData[i]
+    } else if ((inData[i].children !== undefined && inData[i].children.length > 0)) {
 
-        var subtree = findNode(searchId, inData[i].children)
-        if (subtree){
-          return subtree
-        }
+      var subtree = findNode(searchId, inData[i].children)
+      if (subtree){
+        return subtree
       }
     }
   }
+}
+
+
+export default function IconExpansionTreeView({ treeData, onClick }) {
 
   function findPath(searchId) {
     var path = ""
@@ -153,18 +155,8 @@ export default function IconExpansionTreeView({ treeData, onFeedSelection, onFol
       defaultExpanded={["0"]}
       //onNodeToggle={}
       onNodeSelect={(event, nodeId) => {
-
-        var currentPath = findPath(nodeId)
-
-        var children = findNode(nodeId, treeData).children
-        if(children !== undefined){ //clicked on a folder
-            onFolderSelection(children.map(function(child) {
-              return currentPath + "/" + child.label
-            }))
-        }else{  //clicked on a feed
-          console.log("feed")
-          onFeedSelection(currentPath)
-        }
+      var currentPath = findPath(nodeId)
+        onClick(nodeId, currentPath)
       }}
       sx={{ height: "100%", flexGrow: 1, maxWidth: 400, overflowY: 'auto', textAlign: 'left' }}
     >
