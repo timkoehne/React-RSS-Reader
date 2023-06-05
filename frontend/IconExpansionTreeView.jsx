@@ -118,7 +118,7 @@ function mapToTree(treeData) {
   })
 }
 
-export default function IconExpansionTreeView({ treeData, onTreeSelection }) {
+export default function IconExpansionTreeView({ treeData, onFeedSelection, onFolderSelection }) {
 
   function findNode(searchId, inData) {
     //console.log("searching for nodeId " + searchId)
@@ -153,9 +153,20 @@ export default function IconExpansionTreeView({ treeData, onTreeSelection }) {
       defaultExpanded={["0"]}
       //onNodeToggle={}
       onNodeSelect={(event, nodeId) => {
-        onTreeSelection(findPath(nodeId))
+
+        var currentPath = findPath(nodeId)
+
+        var children = findNode(nodeId, treeData).children
+        if(children !== undefined){ //clicked on a folder
+            onFolderSelection(children.map(function(child) {
+              return currentPath + "/" + child.label
+            }))
+        }else{  //clicked on a feed
+          console.log("feed")
+          onFeedSelection(currentPath)
+        }
       }}
-      sx={{ height: "100%", flexGrow: 1, maxWidth: 400, overflowY: 'auto', 'textAlign': 'left' }}
+      sx={{ height: "100%", flexGrow: 1, maxWidth: 400, overflowY: 'auto', textAlign: 'left' }}
     >
       {mapToTree(treeData)}
     </TreeView >

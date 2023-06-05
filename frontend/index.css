@@ -72,5 +72,13 @@ td{
   width: 5px;
 }
 
-.sidebar{
+.tableCell{
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tableHeader{
+  display: flex;
 }
