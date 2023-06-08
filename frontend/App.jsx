@@ -5,6 +5,10 @@ import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import IconExpansionTreeView, { findNode } from './IconExpansionTreeView';
 import { hasFeedCached, addFeedToCache, getFeedFromCache, loadFeedCache } from "./localCaching";
 
+const serverAddress = "localhost"
+const serverPort = 3001
+
+
 export default function App() {
 
   const [selectedTreeElement, setSelectedTreeElement] = React.useState({})
@@ -19,7 +23,7 @@ export default function App() {
   }, [treeData])
 
   React.useEffect(() => {
-    fetch("http://localhost:3001/feedlist")
+    fetch("http://" + serverAddress + ":" + serverPort + "/feedlist")
       .then((res) => res.json())
       .then((feedlist) => {
         // console.log("feedList:")
@@ -72,16 +76,13 @@ export default function App() {
       console.log("Showing Cached feed")
       return getFeedFromCache(feedname)
     } else {
-      console.log("fetching")
-      return fetch("http://localhost:3001/rss?feed=" + feedname)
+      return fetch("http://" + serverAddress + ":" + serverPort + "/rss?feed=" + feedname)
         .then((res) => res.json())
         .then((feeddata) => {
           var newEntries = []
 
           //single feed
-          console.log("typeof feeddata", typeof (feeddata))
           if (typeof (feeddata) == "string") {
-            console.log("single feed")
             newEntries = xmlParseSingleFeed(feeddata)
           }
 
@@ -105,20 +106,20 @@ export default function App() {
     return feedEntries
   }
 
-  async function onTreeElementClick(nodeId, currentPath, bypassCache = false){
+  async function onTreeElementClick(nodeId, currentPath, bypassCache = false) {
     setSelectedTreeElement({ "nodeId": nodeId, "currentPath": currentPath })
-    console.log(nodeId)
+    console.log("Clicked on", currentPath)
 
     var feedEntries = await loadFeedOrFolder(nodeId, currentPath, bypassCache)
     setRowsData(feedEntries)
   }
-  
+
   async function loadFeedOrFolder(nodeId, currentPath, bypassCache) {
     var feedEntries = []
     var children = findNode(nodeId, treeData).children
     if (children !== undefined) {
       // console.log(currentPath + " is a folder")
-       feedEntries = await loadFolder(nodeId, currentPath, bypassCache)
+      feedEntries = await loadFolder(nodeId, currentPath, bypassCache)
 
     } else {
       // console.log(currentPath + " is a feed")
@@ -135,19 +136,24 @@ export default function App() {
   }
 
   return (
-    <>
-      <PanelGroup direction="horizontal" className='panelgroup'>
-        <Panel defaultSize={20} minSize={20} className='panel sidebar'>
-          <button onClick={() => console.log(getFeedFromCache("Youtube/Techquickie"))}>Test</button>
-          <button onClick={() => onTreeElementClick(selectedTreeElement["nodeId"], selectedTreeElement["currentPath"], true)}>Update Feed</button>
+    <PanelGroup direction="horizontal" className='panelgroup' style={{ width: "92vw", overflow: "scroll" }}>
+
+      <Panel classname="panel" defaultSize={20}>
+        <div style={{ height: "90vh", overflow: "auto" }}>
+          <div>
+            <button onClick={() => console.log(getFeedFromCache("Youtube/Techquickie"))}>Test</button>
+            <button onClick={() => onTreeElementClick(selectedTreeElement["nodeId"], selectedTreeElement["currentPath"], true)}>Update Feed</button>
+          </div>
           {/* <button onClick={() => console.log(loadFeedEntries("Youtube/Felixba", true))}>bla</button> */}
-          <IconExpansionTreeView treeData={treeData} onClick={onTreeElementClick} />
-        </Panel>
-        <PanelResizeHandle className='panelResizeHandle' />
-        <Panel minSize={30} className='panel'>
-          <RssTable rowsData={rowsData} />
-        </Panel>
-      </PanelGroup>
-    </>
+          <div>
+            <IconExpansionTreeView treeData={treeData} onClick={onTreeElementClick} />
+          </div>
+        </div>
+      </Panel>
+      <PanelResizeHandle className='panelResizeHandle' />
+      <Panel className="panel">
+        <RssTable rowsData={rowsData} />
+      </Panel>
+    </PanelGroup>
   )
 }

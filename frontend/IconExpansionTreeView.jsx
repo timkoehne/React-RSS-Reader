@@ -158,7 +158,7 @@ export default function IconExpansionTreeView({ treeData, onClick }) {
       var currentPath = findPath(nodeId)
         onClick(nodeId, currentPath)
       }}
-      sx={{ height: "100%", flexGrow: 1, maxWidth: 400, overflowY: 'auto', textAlign: 'left' }}
+      sx={{ height: "100%", flexGrow: 1, maxWidth: "100%", textAlign: 'left', whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}
     >
       {mapToTree(treeData)}
     </TreeView >

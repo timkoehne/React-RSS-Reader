@@ -1,6 +1,6 @@
 import { VariableSizeGrid } from 'react-window';
 
-const columns = [{ title: "author", width: 200, linkTo: "authorUrl" }, { title: "title", width: 650, linkTo: "url" }, { title: "date", width: 150, linkTo: "" }]
+const columns = [{ title: "author", width: 200, linkTo: "authorUrl" }, { title: "title", width: 750, linkTo: "url" }, { title: "date", width: 200, linkTo: "" }]
 
 const dateFormat = {
     year: "numeric",
@@ -31,7 +31,7 @@ export default function RssTable({ rowsData }) {
     function generateHeader() {
         return (<div className="tableHeader">
             {columns.map((column, index) => (
-                <div key={index} style={{width: column.width, textAlign: 'left'}}>{column.title}</div>
+                <div className={column.title} key={index} style={{ textAlign: 'left', width: column.width }}>{column.title}</div>
             ))}
         </div>)
     }
@@ -39,18 +39,20 @@ export default function RssTable({ rowsData }) {
 
 
     return (
-        <>
+        <div>
+
             {generateHeader()}
 
             <VariableSizeGrid
                 columnCount={columns.length}
-                columnWidth={index => columns[index]["width"]}
-                height={800}
+                columnWidth={index => columns[index].width}
+                height={810}
                 rowCount={rowsData.length}
-                rowHeight={() => 50}
-                width={columns.reduce((accumulator, curr) => accumulator + curr["width"], 0)} >
+                rowHeight={() => 35}
+                width={columns.reduce((acc, curr) => acc + curr.width, 0)} >
                 {Cell}
             </VariableSizeGrid>
-        </>
+
+        </div >
     )
 }
