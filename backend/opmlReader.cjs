@@ -10,7 +10,7 @@ function processFeed(remainingFeedsObject, parentId) {
     var xmlUrl = remainingFeedsObject["ATTR"]["xmlUrl"]
     var htmlUrl = remainingFeedsObject["ATTR"]["htmlUrl"]
     return {
-        "nodeId": currentNodeId + "", "label": title, "xmlUrl": xmlUrl,
+        "nodeId": currentNodeId + "", "label": title.replace("/", ""), "xmlUrl": xmlUrl,
         "htmlUrl": htmlUrl, "parentId": parentId + ""
     }
 }
@@ -22,7 +22,7 @@ function processFolder(remainingFeedsObject, parentId) {
     for (var i = 0; i < remainingFeedsObject["outline"].length; i++) {
         children.push(selectOperation(remainingFeedsObject["outline"][i], folderId))
     }
-    return { "nodeId": folderId + "", "label": title, "parentId": parentId + "", "children": children }
+    return { "nodeId": folderId + "", "label": title.replace("/", ""), "parentId": parentId + "", "children": children }
 }
 
 function selectOperation(remainingFeedsObject, parentId = "root") {

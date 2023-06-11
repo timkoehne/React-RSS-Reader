@@ -1,6 +1,10 @@
 import { VariableSizeGrid } from 'react-window';
 
-const columns = [{ title: "author", width: 200, linkTo: "authorUrl" }, { title: "title", width: 750, linkTo: "url" }, { title: "date", width: 200, linkTo: "" }]
+const columns = [
+    { title: "", width: 30, linkTo: "" },
+    { title: "author", width: 200, linkTo: "authorUrl" },
+    { title: "title", width: 750, linkTo: "url" },
+    { title: "date", width: 200, linkTo: "" }]
 
 const dateFormat = {
     year: "numeric",
@@ -11,22 +15,27 @@ const dateFormat = {
     second: "2-digit",
 }
 
-export default function RssTable({ rowsData }) {
+export default function RssTable({ rowsData, onSeenClick }) {
 
     const Cell = ({ columnIndex, rowIndex, style }) => (
 
-        columns[columnIndex].linkTo !== "" ? //if
+        columns[columnIndex].linkTo !== "" ? //if 
             <div className="tableCell" style={style}>
                 <a href={rowsData[rowIndex][columns[columnIndex].linkTo]}>
                     {rowsData[rowIndex][columns[columnIndex].title]}
                 </a>
             </div>
             : //else
-            <div className="tableCell" style={style}>
-                {new Date(rowsData[rowIndex][columns[columnIndex].title]).toLocaleString("de-DE", dateFormat)}
-            </div>
+            columns[columnIndex].title === "date" ? //else if "date"
+                <div className="tableCell" style={style}>
+                    {new Date(rowsData[rowIndex][columns[columnIndex].title]).toLocaleString("de-DE", dateFormat)}
+                </div> : //else if "seen"
+                <div style={style} >
+                    <input type="checkbox" defaultChecked={rowsData[rowIndex].seen} onChange={(e) => {
+                        onSeenClick([rowIndex], e.target.checked)
+                    }}></input>
+                </div>
     );
-
 
     function generateHeader() {
         return (<div className="tableHeader">
@@ -36,11 +45,8 @@ export default function RssTable({ rowsData }) {
         </div>)
     }
 
-
-
     return (
         <div>
-
             {generateHeader()}
 
             <VariableSizeGrid
@@ -49,10 +55,9 @@ export default function RssTable({ rowsData }) {
                 height={810}
                 rowCount={rowsData.length}
                 rowHeight={() => 35}
-                width={columns.reduce((acc, curr) => acc + curr.width, 0)} >
+                width={columns.reduce((acc, curr) => acc + curr.width, 0)}>
                 {Cell}
             </VariableSizeGrid>
-
         </div >
     )
 }

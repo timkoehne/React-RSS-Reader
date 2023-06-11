@@ -3,7 +3,7 @@ import './App.css'
 import RssTable from './RssTable'
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import IconExpansionTreeView, { findNode } from './IconExpansionTreeView';
-import { hasFeedCached, addFeedToCache, getFeedFromCache, loadFeedCache } from "./localCaching";
+import { hasFeedCached, addFeedToCache, getFeedFromCache, loadFeedCache, updateSeenStatusInCache } from "./localCaching";
 
 const serverAddress = "localhost"
 const serverPort = 3001
@@ -44,30 +44,6 @@ export default function App() {
     localStorage.setItem("ITEMS", JSON.stringify(rowsData))
   }, [rowsData])
 
-  function xmlParseSingleFeed(feeddata) {
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(feeddata, "text/xml")
-    const errorNode = doc.querySelector("parsererror")
-    if (errorNode) {
-      console.log("error while parsing");
-    } else {
-      var entries = []
-      var xmlEntries = doc.getElementsByTagName("entry")
-
-      //console.log(xmlEntries)
-      for (var i = 0; i < xmlEntries.length; i++) {
-        var title = xmlEntries[i].children[3].textContent
-        var url = xmlEntries[i].children[4].attributes["href"]
-        var authorUrl = xmlEntries[i].children[5].children[1].textContent
-        var author = xmlEntries[i].children[5].children[0].textContent
-        var date = xmlEntries[i].children[6].textContent
-
-        entries.push({ "author": author, "authorUrl": authorUrl, "title": title, "date": date, 'url': url.value })
-      }
-
-      return entries
-    }
-  }
 
   async function loadFeed(feedname, bypassCache) {
     console.log("loadFeed: " + feedname)
@@ -76,15 +52,10 @@ export default function App() {
       console.log("Showing Cached feed")
       return getFeedFromCache(feedname)
     } else {
-      return fetch("http://" + serverAddress + ":" + serverPort + "/rss?feed=" + feedname)
+      return fetch("http://" + serverAddress + ":" + serverPort + "/rss?feed=" + encodeURIComponent(feedname))
         .then((res) => res.json())
         .then((feeddata) => {
-          var newEntries = []
-
-          //single feed
-          if (typeof (feeddata) == "string") {
-            newEntries = xmlParseSingleFeed(feeddata)
-          }
+          var newEntries = feeddata
 
           newEntries.sort(function (entry1, entry2) {
             const date1 = new Date(entry1["date"])
@@ -135,14 +106,60 @@ export default function App() {
     return feedEntries
   }
 
+  function setSeenInRowsData(rowIndices, seenStatus) {
+    console.log("called")
+    const rowsCopy = [...rowsData]
+    for (var i = 0; i < rowIndices.length; i++) {
+      rowsCopy[rowIndices[i]]["seen"] = seenStatus
+    }
+    setRowsData(rowsCopy)
+  }
+
+  function onSeenClick(rowIndex, seenStatus, update = true) {
+
+    //update in backend
+    const fetchUrl = "http://" + serverAddress + ":" + serverPort + "/setSeen?url=" + rowsData[rowIndex].url + "&seen=" + (seenStatus ? 1 : 0)
+    fetch(fetchUrl)
+      .then((res) => res.json())
+      .then((answer) => {
+        console.log(answer["message"])
+      })
+
+    //update in dom
+    if (update) {
+      setSeenInRowsData([rowIndex], seenStatus)
+    }
+
+    //update in cache
+    const currentPath = selectedTreeElement["currentPath"]
+    updateSeenStatusInCache(currentPath, rowsData[rowIndex].url, seenStatus)
+
+
+
+  }
+
+  function markAllRead() {
+    const markSeen = true
+    const allRows = [...Array(rowsData.length).keys()]
+    console.log(allRows)
+    for (var i = 0; i < allRows.length; i++) {
+      onSeenClick(i, markSeen, false)
+    }
+    setSeenInRowsData(allRows, markSeen)
+  }
+
   return (
     <PanelGroup direction="horizontal" className='panelgroup' style={{ width: "92vw", overflow: "scroll" }}>
 
       <Panel classname="panel" defaultSize={20}>
         <div style={{ height: "90vh", overflow: "auto" }}>
           <div>
-            <button onClick={() => console.log(getFeedFromCache("Youtube/Techquickie"))}>Test</button>
+            <button onClick={() => {
+              rowsData[0].seen = !rowsData[0].seen
+              console.log(rowsData[0].seen)
+            }}>Test</button>
             <button onClick={() => onTreeElementClick(selectedTreeElement["nodeId"], selectedTreeElement["currentPath"], true)}>Update Feed</button>
+            <button onClick={() => markAllRead()}>Mark all Read</button>
           </div>
           {/* <button onClick={() => console.log(loadFeedEntries("Youtube/Felixba", true))}>bla</button> */}
           <div>
@@ -152,7 +169,7 @@ export default function App() {
       </Panel>
       <PanelResizeHandle className='panelResizeHandle' />
       <Panel className="panel">
-        <RssTable rowsData={rowsData} />
+        <RssTable rowsData={rowsData} onSeenClick={onSeenClick} />
       </Panel>
     </PanelGroup>
   )
