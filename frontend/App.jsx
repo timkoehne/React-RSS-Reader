@@ -80,6 +80,7 @@ export default function App() {
   async function onTreeElementClick(nodeId, currentPath, bypassCache = false) {
     setSelectedTreeElement({ "nodeId": nodeId, "currentPath": currentPath })
     console.log("Clicked on", currentPath)
+    console.log(rowsData)
 
     var feedEntries = await loadFeedOrFolder(nodeId, currentPath, bypassCache)
     setRowsData(feedEntries)

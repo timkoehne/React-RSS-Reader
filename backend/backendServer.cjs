@@ -30,7 +30,8 @@ function xmlParseSingleFeed(feeddata) {
         var author = xmlEntries[i]["author"][0]["name"][0]
         var date = xmlEntries[i]["published"][0]
         var seen = database.getSeen(url)
-        entries.push({ "author": author, "authorUrl": authorUrl, "title": title, "date": date, 'url': url, "seen": seen })
+        var duration = database.getDuration(url)
+        entries.push({ "author": author, "authorUrl": authorUrl, "title": title, "date": date, 'url': url, "seen": seen, "duration": duration })
       }
       parsed = entries
     }
@@ -147,7 +148,7 @@ async function getVideoDetails(videoIds) {
   } else {
     const items = []
 
-    do { //youtube api call can only handle 50 ids at a time
+    while (videoIds.length > 0) { //youtube api call can only handle 50 ids at a time
       const currentPassEnd = videoIds.length > 50 ? 50 : videoIds.length
       const currentBatch = videoIds.slice(0, currentPassEnd)
       videoIds = videoIds.slice(currentPassEnd)
@@ -160,7 +161,7 @@ async function getVideoDetails(videoIds) {
         .then((content) => {
           items.push(...content["items"])
         });
-    } while (videoIds.length > 0)
+    }
 
     return items
   }
@@ -207,10 +208,30 @@ async function getRss(feedPath, disableOutput = false) {
 
 async function updateAllFeeds() {
   console.log("Updating all Feeds...")
-  const allFeeds = getSubFeedPaths(feedList[0])
-  for (var i = 0; i < allFeeds.length; i++) {
-    await getRss(allFeeds[i], true)
+  const allFeedPaths = getSubFeedPaths(feedList[0])
+  const videosWithoutDuration = []
+  for (var i = 0; i < allFeedPaths.length; i++) {
+    const feedEntries = await getRss(allFeedPaths[i], true)
+
+    for (var videoIndex in feedEntries) {
+      if(!database.isInDatabaseAndHasDuration(feedEntries[videoIndex]["url"])){
+        feedEntries[videoIndex]
+        videosWithoutDuration.push({ "url": feedEntries[videoIndex]["url"], "seen": feedEntries[videoIndex]["seen"] })
+      }
+    }
   }
+
+  //TODO find a better solution for video durations
+  //currently duration for new elements is loaded to database after feed data is read from database
+  //so new video duration is missing until the next update
+  //also probably want to get durations from manual updates via /rss too
+  const videoIds = videosWithoutDuration.map((feedEntry) => feedEntry["url"].replace("https://www.youtube.com/watch?v=", ""))
+  console.log("new videoIds: " + videoIds)
+  const durations = await getVideoDurations(videoIds)
+  for(videoIndex in videosWithoutDuration){
+      database.setDurationOrInsert(videosWithoutDuration[videoIndex]["url"], videosWithoutDuration[videoIndex]["seen"], durations[videoIndex])
+  }
+
   console.log("finished updating all feeds at " + new Date(Date.now()).toLocaleString(dateFormattingConfig.locale, dateFormattingConfig.dateFormatParam))
 }
 
@@ -239,15 +260,6 @@ app.get("/feedlist", (req, res) => {
 app.get("/api", (req, res) => {
   console.log("Responding to " + req.url)
   res.json({ message: "Hello from server!" });
-});
-
-
-app.get("/test", async (req, res) => {
-
-  const videoIds = ["2u3ujFhxEug", "dYktvWb0zaA"]
-  const durations = await getVideoDurations(videoIds)
-
-  res.json(durations);
 });
 
 app.get("/getSeen", (req, res) => {
@@ -284,6 +296,9 @@ app.listen(PORT, async () => {
 
   await updateAllFeeds()
   setInterval(updateAllFeeds, 1000 * 60 * 60); //update every hour
+
+  console.log("Database contains " + database.getNumberOfRows() + " rows")
+
 
   console.log(`Server listening on ${PORT}`);
 });

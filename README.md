@@ -9,7 +9,7 @@ i mainly use this to replace youtube subscriptions
     - only show unread entries
     - remove youtube shorts
     - filter based on title or text content
-- add video duration to youtube video feed entries in backend
+- improve video duration in backend "updateAllFeeds"
 - add youtube views and like numbers
 - youtube-dislike api
 - preview article / description
