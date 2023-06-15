@@ -1,11 +1,13 @@
 const express = require("express");
 const PORT = process.env.PORT || 3001;
 const app = express();
+const tinyduration = require('tinyduration');
 
 const util = require('util')
 var parseXmlString = require('xml2js').parseString;
 const opmlReader = require('./opmlReader.cjs');
 const database = require('./database.cjs');
+const { YOUTUBE_API_KEY } = require("../youtubeApiKey.cjs");
 
 var feedList = []
 var cache = []
@@ -117,12 +119,60 @@ async function getDataFromCacheOrUrl(url) {
     console.log("Responding with cached data")
     return cache[url]["entries"]
   } else {
-  console.log("Fetching data from " + url)
-  var feed = getFromUrl(url)
-  console.log("Responding with fetched data")
-  return await feed
+    console.log("Fetching data from " + url)
+    var feed = getFromUrl(url)
+    console.log("Responding with fetched data")
+    return await feed
   }
 }
+
+async function getVideoDetails(videoIds) {
+
+  if (!YOUTUBE_API_KEY) {
+    throw new Error("No API key is provided");
+  } else {
+    const items = []
+
+    do { //youtube api call can only handle 50 ids at a time
+      const currentPassEnd = videoIds.length > 50 ? 50 : videoIds.length
+      const currentBatch = videoIds.slice(0, currentPassEnd)
+      videoIds = videoIds.slice(currentPassEnd)
+
+      const idList = currentBatch.map((id) => "&id=" + id).join("")
+      const url = "https://www.googleapis.com/youtube/v3/videos?part=contentDetails&key=" + YOUTUBE_API_KEY + idList;
+
+      await fetch(url)
+        .then((response) => response.json())
+        .then((content) => {
+          items.push(...content["items"])
+        });
+    } while (videoIds.length > 0)
+
+    return items
+  }
+}
+
+async function getVideoDurations(videoIds){
+  const videos = await getVideoDetails(videoIds)
+  const durations = []
+
+  for (var i = 0; i < videos.length; i++) {
+    const duration = tinyduration.parse(videos[i]["contentDetails"]["duration"])
+    var seconds = 0
+    if (duration.hours != undefined) {
+      seconds = seconds + (parseInt(duration.hours) * 60 * 60)
+    }
+    if (duration.minutes != undefined) {
+      seconds = seconds + (parseInt(duration.minutes) * 60)
+    }
+    if (duration.seconds != undefined) {
+      seconds = seconds + parseInt(duration.seconds)
+    }
+    durations.push(seconds)
+  }
+  return durations
+}
+
 
 app.get("/rss", async (req, res) => {
   console.log("-------------------------")
@@ -143,7 +193,6 @@ app.get("/rss", async (req, res) => {
   } else {
     var xmlUrls = findFeedsInFolder(feedObject)
     var allFeeds = await getFromUrls(xmlUrls)
-    console.log(allFeeds)
     res.json({ "xml": allFeeds })
   }
 });
@@ -156,6 +205,15 @@ app.get("/feedlist", (req, res) => {
 app.get("/api", (req, res) => {
   console.log("Responding to " + req.url)
   res.json({ message: "Hello from server!" });
+});
+
+
+app.get("/test", async (req, res) => {
+
+  const videoIds = ["2u3ujFhxEug", "dYktvWb0zaA"]
+  const durations = await getVideoDurations(videoIds)
+
+  res.json(durations);
 });
 
 app.get("/getSeen", (req, res) => {

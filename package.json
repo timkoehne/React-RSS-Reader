@@ -25,6 +25,7 @@
     "react-window": "^1.8.9",
     "react-window-infinite-loader": "^1.0.9",
     "styled": "^1.0.0",
+    "tinyduration": "^3.2.4",
     "xml2js": "^0.5.0"
   },
   "devDependencies": {
