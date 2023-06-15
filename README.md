@@ -5,7 +5,6 @@ i mainly use this to replace youtube subscriptions
 
 
 # Todo
-- add "all feeds" parent folder
 - filtering: temporary and permanently
     - only show unread entries
     - remove youtube shorts

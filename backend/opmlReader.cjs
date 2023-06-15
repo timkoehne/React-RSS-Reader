@@ -2,7 +2,7 @@ const xml2js = require('xml2js');
 const fs = require('fs');
 const parser = new xml2js.Parser({ attrkey: "ATTR" });
 
-var currentNodeId = -1
+var currentNodeId
 function processFeed(remainingFeedsObject, parentId) {
     var title = remainingFeedsObject["ATTR"]["title"]
     var text = remainingFeedsObject["ATTR"]["text"]
@@ -40,10 +40,15 @@ function createFeedsList() {
     //console.log(util.inspect(feedsObject, false, null))
 
     console.log("Generating FeedsDict...")
-    var feeds = []
-    currentNodeId = -1
+    var feeds = [{
+        "nodeId": "0",
+        "label": "All Feeds",
+        "parentId": "root",
+        "children": []
+    }]
+    currentNodeId = 0
     for (var i = 0; i < feedsObject.length; i++) {
-        feeds.push(selectOperation(feedsObject[i]))
+        feeds[0]["children"].push(selectOperation(feedsObject[i], "0"))
     }
     //console.log(util.inspect(feed, false, null))
     return feeds
