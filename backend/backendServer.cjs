@@ -8,6 +8,7 @@ var parseXmlString = require('xml2js').parseString;
 const opmlReader = require('./opmlReader.cjs');
 const database = require('./database.cjs');
 const { YOUTUBE_API_KEY } = require("../youtubeApiKey.cjs");
+const dateFormattingConfig = require("../dateFormattingConfig.cjs");
 
 var feedList = []
 var cache = []
@@ -71,11 +72,11 @@ function findFeed(feedPath, inData) {
   return inData
 }
 
-async function getFromUrls(urls) {
+async function getFromUrls(urls, disableOutput) {
   if (urls.length > 0) {
     console.log(urls.length + " remaining")
     // console.log(urls[0])
-    var feed = await getDataFromCacheOrUrl(urls[0])
+    var feed = await getDataFromCacheOrUrl(urls[0], disableOutput)
 
     await new Promise(r => setTimeout(r, 10))
     urls.splice(0, 1)
@@ -98,30 +99,43 @@ async function getFromUrl(url) {
   return await entries
 }
 
-function recentCacheAvailable(xmlUrl) {
+function recentCacheAvailable(xmlUrl, disableOutput = false) {
   if (Object.hasOwn(cache, xmlUrl)) {
     const currentTime = new Date()
     const timeDifference = Math.abs(currentTime - cache[xmlUrl]["time"])
     const minutes = Math.floor((timeDifference / 1000) / 60);
 
     if (minutes < 30) {
-      console.log("found cached data from " + minutes + " minutes ago")
+      if (!disableOutput) console.log("found cached data from " + minutes + " minutes ago")
       return true
     } else {
-      console.log("cached data found but it is " + minutes + " minutes old")
+      if (!disableOutput) console.log("cached data found but it is " + minutes + " minutes old")
       return false
     }
   }
 }
 
-async function getDataFromCacheOrUrl(url) {
-  if (recentCacheAvailable(url)) {
-    console.log("Responding with cached data")
+function getSubFeedPaths(feed, currentPath = "") {
+  var subfeeds = []
+
+  if (Object.hasOwn(feed, "children")) { //is folder
+    for (var i = 0; i < feed.children.length; i++) {
+      subfeeds.push(...getSubFeedPaths(feed.children[i], currentPath + feed.label + "/"))
+    }
+  } else { //is feed
+    subfeeds.push(currentPath + feed.label)
+  }
+  return subfeeds
+}
+
+async function getDataFromCacheOrUrl(url, disableOutput) {
+  if (recentCacheAvailable(url, disableOutput)) {
+    if (!disableOutput) console.log("Responding with cached data")
     return cache[url]["entries"]
   } else {
-    console.log("Fetching data from " + url)
+    if (!disableOutput) console.log("Fetching data from " + url)
     var feed = getFromUrl(url)
-    console.log("Responding with fetched data")
+    if (!disableOutput) console.log("Responding with fetched data")
     return await feed
   }
 }
@@ -152,7 +166,7 @@ async function getVideoDetails(videoIds) {
   }
 }
 
-async function getVideoDurations(videoIds){
+async function getVideoDurations(videoIds) {
   const videos = await getVideoDetails(videoIds)
   const durations = []
 
@@ -173,28 +187,48 @@ async function getVideoDurations(videoIds){
   return durations
 }
 
+async function getRss(feedPath, disableOutput = false) {
+  var feedObject = findFeed(feedPath, feedList)
+
+  //single feed
+  if (Object.hasOwn(feedObject, "xmlUrl")) {
+    var xmlUrl = feedObject["xmlUrl"]
+    var parsedFeed = await getDataFromCacheOrUrl(xmlUrl, disableOutput)
+    return parsedFeed
+
+    //folder of feeds
+  } else {
+    var xmlUrls = findFeedsInFolder(feedObject)
+    var allFeeds = await getFromUrls(xmlUrls, disableOutput)
+    return { "xml": allFeeds }
+  }
+
+}
+
+async function updateAllFeeds() {
+  console.log("Updating all Feeds...")
+  const allFeeds = getSubFeedPaths(feedList[0])
+  for (var i = 0; i < allFeeds.length; i++) {
+    await getRss(allFeeds[i], true)
+  }
+  console.log("finished updating all feeds at " + new Date(Date.now()).toLocaleString(dateFormattingConfig.locale, dateFormattingConfig.dateFormatParam))
+}
+
+app.get("/updateAllFeeds", async (req, res) => {
+  console.log("Responding to " + req.url)
+  await updateAllFeeds()
+  res.json({ "message": "all feeds updated successfully" })
+});
 
 app.get("/rss", async (req, res) => {
   console.log("-------------------------")
   console.log("Responding to " + req.url)
   var feedPath = req.query.feed
 
-  console.log("Getting Feed for " + feedPath)
-  var feedObject = findFeed(feedPath, feedList)
+  const rss = await getRss(feedPath)
 
-  //single feed
-  if (Object.hasOwn(feedObject, "xmlUrl")) {
-    var xmlUrl = feedObject["xmlUrl"]
-    var parsedFeed = await getDataFromCacheOrUrl(xmlUrl)
+  res.json(rss)
 
-    res.json(parsedFeed)
-
-    //folder of feeds
-  } else {
-    var xmlUrls = findFeedsInFolder(feedObject)
-    var allFeeds = await getFromUrls(xmlUrls)
-    res.json({ "xml": allFeeds })
-  }
 });
 
 app.get("/feedlist", (req, res) => {
@@ -245,8 +279,11 @@ app.get("/setSeen", (req, res) => {
 });
 
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   feedList = opmlReader.createFeedsList()
+
+  await updateAllFeeds()
+  setInterval(updateAllFeeds, 1000 * 60 * 60); //update every hour
 
   console.log(`Server listening on ${PORT}`);
 });
