@@ -3,6 +3,7 @@ import { VariableSizeGrid } from 'react-window';
 const columns = [
     { title: "", width: 30, linkTo: "" },
     { title: "author", width: 200, linkTo: "authorUrl" },
+    { title: "duration", width: 70, linkTo: "" },
     { title: "title", width: 750, linkTo: "url" },
     { title: "date", width: 200, linkTo: "" }]
 
@@ -15,11 +16,24 @@ const dateFormat = {
     second: "2-digit",
 }
 
+function formatDuration(seconds) {
+    const hours = Math.floor(seconds / (60 * 60))
+    seconds = seconds % (60 * 60)
+    const minutes = Math.floor(seconds / 60)
+    seconds = seconds % 60
+
+    var output = String(minutes).padStart(2, '0') + ":" + String(seconds).padStart(2, '0')
+    if (hours > 0) {
+        output = String(hours).padStart(2, '0') + ":" + output
+    }
+    return output
+}
+
 export default function RssTable({ rowsData, onSeenClick }) {
 
     const Cell = ({ columnIndex, rowIndex, style }) => (
 
-        columns[columnIndex].linkTo !== "" ? //if 
+        columns[columnIndex].linkTo !== "" ? //if author or title
             <div className="tableCell" style={style}>
                 <a href={rowsData[rowIndex][columns[columnIndex].linkTo]}>
                     {rowsData[rowIndex][columns[columnIndex].title]}
@@ -29,12 +43,16 @@ export default function RssTable({ rowsData, onSeenClick }) {
             columns[columnIndex].title === "date" ? //else if "date"
                 <div className="tableCell" style={style}>
                     {new Date(rowsData[rowIndex][columns[columnIndex].title]).toLocaleString("de-DE", dateFormat)}
-                </div> : //else if "seen"
-                <div style={style} >
-                    <input type="checkbox" defaultChecked={rowsData[rowIndex].seen} onChange={(e) => {
-                        onSeenClick([rowIndex], e.target.checked)
-                    }}></input>
-                </div>
+                </div> :
+                columns[columnIndex].title === "" ? //else if "seen"
+                    <div style={style} >
+                        <input type="checkbox" defaultChecked={rowsData[rowIndex].seen} onChange={(e) => {
+                            onSeenClick([rowIndex], e.target.checked)
+                        }}></input>
+                    </div> : //else  "duration"
+                    <div className="tableCell" style={style} >
+                        {formatDuration(rowsData[rowIndex][columns[columnIndex].title])}
+                    </div>
     );
 
     function generateHeader() {

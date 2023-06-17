@@ -22,3 +22,4 @@ i mainly use this to replace youtube subscriptions
     - results in parentfolders not caching on child updates
 - make treeview not highlightable
 - improve rsstable cell definition
+- combined frontend and backend date formatting config
