@@ -5,10 +5,10 @@ i mainly use this to replace youtube subscriptions
 
 
 # Todo
-- filtering: temporary and permanently
-    - only show unread entries
-    - remove youtube shorts
-    - filter based on title or text content
+- improve filtering
+    - only show unread
+    - filter by date
+    - filter by description
 - improve video duration in backend "updateAllFeeds"
 - add youtube views and like numbers
 - youtube-dislike api

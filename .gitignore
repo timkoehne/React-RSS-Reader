@@ -25,3 +25,4 @@ dist-ssr
 subscriptions.opml
 videos.db
 youtubeApiKey.cjs
+vite.config.js.*

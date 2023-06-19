@@ -1,11 +1,6 @@
 import { VariableSizeGrid } from 'react-window';
-
-const columns = [
-    { title: "", width: 30, linkTo: "" },
-    { title: "author", width: 200, linkTo: "authorUrl" },
-    { title: "duration", width: 70, linkTo: "" },
-    { title: "title", width: 750, linkTo: "url" },
-    { title: "date", width: 200, linkTo: "" }]
+import * as React from 'react';
+import { columns } from './columns';
 
 const dateFormat = {
     year: "numeric",
@@ -29,29 +24,29 @@ function formatDuration(seconds) {
     return output
 }
 
-export default function RssTable({ rowsData, onSeenClick }) {
+export default function RssTable({ filteredRowsData, onSeenClick }) {
 
     const Cell = ({ columnIndex, rowIndex, style }) => (
 
         columns[columnIndex].linkTo !== "" ? //if author or title
             <div className="tableCell" style={style}>
-                <a href={rowsData[rowIndex][columns[columnIndex].linkTo]}>
-                    {rowsData[rowIndex][columns[columnIndex].title]}
+                <a href={filteredRowsData[rowIndex][columns[columnIndex].linkTo]}>
+                    {filteredRowsData[rowIndex][columns[columnIndex].title]}
                 </a>
             </div>
             : //else
             columns[columnIndex].title === "date" ? //else if "date"
                 <div className="tableCell" style={style}>
-                    {new Date(rowsData[rowIndex][columns[columnIndex].title]).toLocaleString("de-DE", dateFormat)}
+                    {new Date(filteredRowsData[rowIndex][columns[columnIndex].title]).toLocaleString("de-DE", dateFormat)}
                 </div> :
                 columns[columnIndex].title === "" ? //else if "seen"
                     <div style={style} >
-                        <input type="checkbox" defaultChecked={rowsData[rowIndex].seen} onChange={(e) => {
-                            onSeenClick([rowIndex], e.target.checked)
+                        <input type="checkbox" defaultChecked={filteredRowsData[rowIndex].seen} onChange={(e) => {
+                            onSeenClick([filteredRowsData[rowIndex]["url"]], e.target.checked)
                         }}></input>
                     </div> : //else  "duration"
                     <div className="tableCell" style={style} >
-                        {formatDuration(rowsData[rowIndex][columns[columnIndex].title])}
+                        {formatDuration(filteredRowsData[rowIndex][columns[columnIndex].title])}
                     </div>
     );
 
@@ -71,7 +66,7 @@ export default function RssTable({ rowsData, onSeenClick }) {
                 columnCount={columns.length}
                 columnWidth={index => columns[index].width}
                 height={810}
-                rowCount={rowsData.length}
+                rowCount={filteredRowsData.length}
                 rowHeight={() => 35}
                 width={columns.reduce((acc, curr) => acc + curr.width, 0)}>
                 {Cell}

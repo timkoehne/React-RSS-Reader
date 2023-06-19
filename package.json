@@ -22,6 +22,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-resizable-panels": "^0.0.45",
+    "react-router-dom": "^6.13.0",
+    "react-widgets": "^5.8.4",
     "react-window": "^1.8.9",
     "react-window-infinite-loader": "^1.0.9",
     "styled": "^1.0.0",
