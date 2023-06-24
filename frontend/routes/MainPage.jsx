@@ -8,7 +8,7 @@ import { hasFeedCached, addFeedToCache, getFeedFromCache, loadFeedCache, updateS
 import { checkFilters } from '../filteringMatchFunction'
 import { useNavigate } from 'react-router-dom';
 
-const serverAddress = "localhost"
+const serverAddress = window.location.hostname
 const serverPort = 3001
 
 
