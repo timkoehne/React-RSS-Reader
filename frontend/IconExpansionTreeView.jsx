@@ -136,6 +136,26 @@ export function findNode(searchId, inData) {
 
 
 export default function IconExpansionTreeView({ treeData, onClick }) {
+  
+  //remember expanded items
+  const [expanded, setExpanded] = React.useState(() => {
+    const localValue = localStorage.getItem("expanded")
+    if (localValue == null) return []
+    return JSON.parse(localValue)
+  })
+  React.useEffect(() => {
+    localStorage.setItem("expanded", JSON.stringify(expanded))
+  }, [expanded])
+
+  //remember selected item
+  const [selected, setSelected] = React.useState(() => {
+    const localValue = localStorage.getItem("selected")
+    if (localValue == null) return "0"
+    return JSON.parse(localValue)
+  })
+  React.useEffect(() => {
+    localStorage.setItem("selected", JSON.stringify(selected))
+  }, [selected])
 
   function findPath(searchId) {
     var path = ""
@@ -152,11 +172,18 @@ export default function IconExpansionTreeView({ treeData, onClick }) {
       aria-label="icon expansion"
       defaultCollapseIcon={<ExpandMoreIcon />}
       defaultExpandIcon={<ChevronRightIcon />}
-      defaultExpanded={["0"]}
+      expanded={expanded}
+      selected={selected}
       //onNodeToggle={}
       onNodeSelect={(event, nodeId) => {
+
+        setSelected(nodeId)
+        
       var currentPath = findPath(nodeId)
         onClick(nodeId, currentPath)
+      }}
+      onNodeToggle={(event, nodeIds) => {
+        setExpanded(nodeIds)
       }}
       sx={{ height: "100%", flexGrow: 1, maxWidth: "100%", textAlign: 'left', whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}
     >
