@@ -1,6 +1,7 @@
 const express = require("express");
 const PORT = process.env.PORT || 3001;
 const app = express();
+app.use(express.json({limit: "20mb"}))
 const tinyduration = require('tinyduration');
 
 const util = require('util')
@@ -214,7 +215,7 @@ async function updateAllFeeds() {
     const feedEntries = await getRss(allFeedPaths[i], true)
 
     for (var videoIndex in feedEntries) {
-      if(!database.isInDatabaseAndHasDuration(feedEntries[videoIndex]["url"])){
+      if (!database.isInDatabaseAndHasDuration(feedEntries[videoIndex]["url"])) {
         feedEntries[videoIndex]
         videosWithoutDuration.push({ "url": feedEntries[videoIndex]["url"], "seen": feedEntries[videoIndex]["seen"] })
       }
@@ -228,11 +229,37 @@ async function updateAllFeeds() {
   const videoIds = videosWithoutDuration.map((feedEntry) => feedEntry["url"].replace("https://www.youtube.com/watch?v=", ""))
   console.log("new videoIds: " + videoIds)
   const durations = await getVideoDurations(videoIds)
-  for(videoIndex in videosWithoutDuration){
-      database.setDurationOrInsert(videosWithoutDuration[videoIndex]["url"], videosWithoutDuration[videoIndex]["seen"], durations[videoIndex])
+  for (videoIndex in videosWithoutDuration) {
+    database.setDurationOrInsert(videosWithoutDuration[videoIndex]["url"], videosWithoutDuration[videoIndex]["seen"], durations[videoIndex])
   }
 
   console.log("finished updating all feeds at " + new Date(Date.now()).toLocaleString(dateFormattingConfig.locale, dateFormattingConfig.dateFormatParam))
+}
+
+function setSeen(urls) {
+  //urls = [{"url": "http:xxx", "seen": true},...]
+
+  for (var i = 0; i < urls.length; i++) {
+    database.setSeen(urls[i]["url"], urls[i]["seen"] ? 1 : 0)
+  }
+
+  justUrls = urls.map(entry => entry["url"])
+
+  //TODO check all
+  const keys = Object.keys(cache)
+  for (var cacheIndex = 0; cacheIndex < keys.length; cacheIndex++) {
+    const cacheEntry = cache[keys[cacheIndex]]
+    for (var entryIndex = 0; entryIndex < cacheEntry["entries"].length; entryIndex++) {
+      const entry = cacheEntry["entries"][entryIndex]
+      // console.log(entry["url"])
+      if (justUrls.includes(entry["url"])) {
+        seenStatus = urls.find((urlEntry) => urlEntry["url"] == entry["url"])["seen"] ? 1 : 0
+        console.log("updated seenStatus for " + entry["url"]+ " to " + seenStatus)
+        entry["seen"] = seenStatus 
+      }
+    }
+  }
+
 }
 
 app.get("/updateAllFeeds", async (req, res) => {
@@ -269,25 +296,17 @@ app.get("/getSeen", (req, res) => {
   res.json({ message: result });
 });
 
-app.get("/setSeen", (req, res) => {
+app.post("/setMultipleSeen", (req, res) => {
+  //req.body = [{"url": "http:xxx", "seen": true},...]
+  setSeen(req.body)
+});
+
+
+app.post("/setSeen", (req, res) => {
   console.log("Responding to " + req.url)
   var url = req.query.url
   var seen = req.query.seen
-  var result = database.setSeen(url, seen)
-
-  const keys = Object.keys(cache)
-  for (var cacheIndex = 0; cacheIndex < keys.length; cacheIndex++) {
-    const cacheEntry = cache[keys[cacheIndex]]
-    for (var entryIndex = 0; entryIndex < cacheEntry["entries"].length; entryIndex++) {
-      const entry = cacheEntry["entries"][entryIndex]
-      if (entry["url"] == url) {
-        console.log("updated seenStatus for " + url + " to " + seen)
-        entry["seen"] = seen
-      }
-    }
-  }
-
-  res.json({ message: result });
+  setSeen([{ "url": url, "seen": seen }])
 });
 
 

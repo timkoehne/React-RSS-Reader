@@ -13,7 +13,7 @@ const serverPort = 3001
 
 
 export default function MainPage() {
-  
+
   const navigate = useNavigate();
 
   //rowdata
@@ -41,14 +41,14 @@ export default function MainPage() {
   }, [rowsData])
 
   //treeview
-    const [selectedTreeElement, setSelectedTreeElement] = React.useState(() => {
-      const localValue = localStorage.getItem("selectedTreeElement")
-      if (localValue == null) return "0"
-      return JSON.parse(localValue)
-    })
-    React.useEffect(() => {
-      localStorage.setItem("selectedTreeElement", JSON.stringify(selectedTreeElement))
-    }, [selectedTreeElement])
+  const [selectedTreeElement, setSelectedTreeElement] = React.useState(() => {
+    const localValue = localStorage.getItem("selectedTreeElement")
+    if (localValue == null) return "0"
+    return JSON.parse(localValue)
+  })
+  React.useEffect(() => {
+    localStorage.setItem("selectedTreeElement", JSON.stringify(selectedTreeElement))
+  }, [selectedTreeElement])
 
   const [treeData, setTreeData] = React.useState(() => {
     const localValue = localStorage.getItem("treeData")
@@ -135,47 +135,55 @@ export default function MainPage() {
     return feedEntries
   }
 
-  function setSeenInRowsData(rowIndices, seenStatus) {
-    const rowsCopy = [...rowsData]
-    for (var i = 0; i < rowIndices.length; i++) {
-      rowsCopy[rowIndices[i]]["seen"] = seenStatus
-    }
-    setRowsData(rowsCopy)
-  }
-
-  function onSeenClick(rowUrl, seenStatus, update = true) {
+  function onSeenClick(rowUrl, seenStatus) {
 
     const rowIndex = rowsData.findIndex(row => row["url"] == rowUrl)
 
     //update in backend
-    const fetchUrl = "http://" + serverAddress + ":" + serverPort + "/setSeen?url=" + filteredRowsData[rowIndex].url + "&seen=" + (seenStatus ? 1 : 0)
-    fetch(fetchUrl)
-      .then((res) => res.json())
-      .then((answer) => {
-        console.log(answer["message"])
-      })
+    const fetchUrl = "http://" + serverAddress + ":" + serverPort + "/setSeen?url=" + rowsData[rowIndex].url + "&seen=" + (seenStatus ? 1 : 0)
+    fetch(fetchUrl, { method: "POST" })
 
     //update in dom
-    if (update) {
-      setSeenInRowsData([rowIndex], seenStatus)
-    }
+    const rowsDataCopy = [...rowsData]
+    rowsDataCopy[rowIndex]["seen"] = seenStatus
+    setRowsData(rowsDataCopy)
 
     //update in cache
     const currentPath = selectedTreeElement["currentPath"]
-    updateSeenStatusInCache(currentPath, filteredRowsData[rowIndex].url, seenStatus)
-
-
-
+    updateSeenStatusInCache(currentPath, rowsData[rowIndex].url, seenStatus)
   }
 
   function markAllRead() {
-    const markSeen = true
-    const allRows = [...Array(rowsData.length).keys()]
-    console.log(allRows)
-    for (var i = 0; i < allRows.length; i++) {
-      onSeenClick(i, markSeen, false)
+    var shownUrls = filteredRowsData.map((row) => row["url"])
+    shownUrls = shownUrls.filter((entry) => entry["seen"] != 1)
+
+    //update in backend
+    const fetchUrl = "http://" + serverAddress + ":" + serverPort + "/setMultipleSeen"
+    fetch(fetchUrl, {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      mods: "cors",
+      body: JSON.stringify(
+        shownUrls.map((url) => ({
+          "url": url,
+          "seen": true
+        })))
+    })
+
+    //update in rowsData
+    const rowsDataCopy = [...rowsData]
+    for (var i = 0; i < rowsData.length; i++) {
+      if (shownUrls.includes(rowsData[i]["url"])) {
+        rowsDataCopy[i]["seen"] = true
+      }
     }
-    setSeenInRowsData(allRows, markSeen)
+    setRowsData(rowsDataCopy)
+
+    //update in cache
+    const currentPath = selectedTreeElement["currentPath"]
+    for (var urlIndex in shownUrls) {
+      updateSeenStatusInCache(currentPath, shownUrls[urlIndex], true)
+    }
   }
 
   return (
