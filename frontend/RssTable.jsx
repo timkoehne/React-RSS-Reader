@@ -28,26 +28,36 @@ export default function RssTable({ filteredRowsData, onSeenClick }) {
 
     const Cell = ({ columnIndex, rowIndex, style }) => (
 
-        columns[columnIndex].linkTo !== "" ? //if author or title
+
+        columns[columnIndex].title === "author" ? //if author
             <div className="tableCell" style={style}>
                 <a href={filteredRowsData[rowIndex][columns[columnIndex].linkTo]}>
                     {filteredRowsData[rowIndex][columns[columnIndex].title]}
                 </a>
             </div>
-            : //else
-            columns[columnIndex].title === "date" ? //else if "date"
+            : //
+            columns[columnIndex].title === "title" ? //else if "title"
                 <div className="tableCell" style={style}>
-                    {new Date(filteredRowsData[rowIndex][columns[columnIndex].title]).toLocaleString("de-DE", dateFormat)}
-                </div> :
-                columns[columnIndex].title === "" ? //else if "seen"
-                    <div style={style} >
-                        <input type="checkbox" defaultChecked={filteredRowsData[rowIndex].seen} onChange={(e) => {
-                            onSeenClick([filteredRowsData[rowIndex]["url"]], e.target.checked)
-                        }}></input>
-                    </div> : //else  "duration"
-                    <div className="tableCell" style={style} >
-                        {formatDuration(filteredRowsData[rowIndex][columns[columnIndex].title])}
-                    </div>
+                    <a href={filteredRowsData[rowIndex][columns[columnIndex].linkTo]}
+                        onClick={(e) => onSeenClick([filteredRowsData[rowIndex]["url"]], true)}
+                        onAuxClick={(e) => { onSeenClick([filteredRowsData[rowIndex]["url"]], true) }}>
+                        {filteredRowsData[rowIndex][columns[columnIndex].title]}
+                    </a>
+                </div>
+                : //else
+                columns[columnIndex].title === "date" ? //else if "date"
+                    <div className="tableCell" style={style}>
+                        {new Date(filteredRowsData[rowIndex][columns[columnIndex].title]).toLocaleString("de-DE", dateFormat)}
+                    </div> :
+                    columns[columnIndex].title === "" ? //else if "seen"
+                        <div style={style} >
+                            <input type="checkbox" defaultChecked={filteredRowsData[rowIndex].seen} onChange={(e) => {
+                                onSeenClick([filteredRowsData[rowIndex]["url"]], e.target.checked)
+                            }}></input>
+                        </div> : //else  "duration"
+                        <div className="tableCell" style={style} >
+                            {formatDuration(filteredRowsData[rowIndex][columns[columnIndex].title])}
+                        </div>
     );
 
     function generateHeader() {
