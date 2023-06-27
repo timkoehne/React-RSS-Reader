@@ -135,7 +135,7 @@ export function findNode(searchId, inData) {
 }
 
 
-export default function IconExpansionTreeView({ treeData, onClick }) {
+export default function IconExpansionTreeView({ treeData, onClick, selectedTreeElement, setSelectedTreeElement }) {
   
   //remember expanded items
   const [expanded, setExpanded] = React.useState(() => {
@@ -146,16 +146,6 @@ export default function IconExpansionTreeView({ treeData, onClick }) {
   React.useEffect(() => {
     localStorage.setItem("expanded", JSON.stringify(expanded))
   }, [expanded])
-
-  //remember selected item
-  const [selected, setSelected] = React.useState(() => {
-    const localValue = localStorage.getItem("selected")
-    if (localValue == null) return "0"
-    return JSON.parse(localValue)
-  })
-  React.useEffect(() => {
-    localStorage.setItem("selected", JSON.stringify(selected))
-  }, [selected])
 
   function findPath(searchId) {
     var path = ""
@@ -173,11 +163,11 @@ export default function IconExpansionTreeView({ treeData, onClick }) {
       defaultCollapseIcon={<ExpandMoreIcon />}
       defaultExpandIcon={<ChevronRightIcon />}
       expanded={expanded}
-      selected={selected}
+      selected={selectedTreeElement}
       //onNodeToggle={}
       onNodeSelect={(event, nodeId) => {
 
-        setSelected(nodeId)
+        setSelectedTreeElement(nodeId)
         
       var currentPath = findPath(nodeId)
         onClick(nodeId, currentPath)

@@ -41,7 +41,14 @@ export default function MainPage() {
   }, [rowsData])
 
   //treeview
-  const [selectedTreeElement, setSelectedTreeElement] = React.useState({})
+    const [selectedTreeElement, setSelectedTreeElement] = React.useState(() => {
+      const localValue = localStorage.getItem("selectedTreeElement")
+      if (localValue == null) return "0"
+      return JSON.parse(localValue)
+    })
+    React.useEffect(() => {
+      localStorage.setItem("selectedTreeElement", JSON.stringify(selectedTreeElement))
+    }, [selectedTreeElement])
 
   const [treeData, setTreeData] = React.useState(() => {
     const localValue = localStorage.getItem("treeData")
@@ -187,7 +194,7 @@ export default function MainPage() {
           </div>
           {/* <button onClick={() => console.log(loadFeedEntries("Youtube/Felixba", true))}>bla</button> */}
           <div>
-            <IconExpansionTreeView treeData={treeData} onClick={onTreeElementClick} />
+            <IconExpansionTreeView treeData={treeData} onClick={onTreeElementClick} selectedTreeElement={selectedTreeElement} setSelectedTreeElement={setSelectedTreeElement} />
           </div>
         </div>
       </Panel>
