@@ -1,7 +1,7 @@
 const express = require("express");
 const PORT = process.env.PORT || 3001;
 const app = express();
-app.use(express.json({limit: "20mb"}))
+app.use(express.json({ limit: "20mb" }))
 const tinyduration = require('tinyduration');
 
 const util = require('util')
@@ -89,16 +89,22 @@ async function getFromUrls(urls, disableOutput) {
 }
 
 async function getFromUrl(url) {
-  var entries = fetch(url)
-    .then((response) => response.text())
-    .then((text) => {
 
-      var parsed = xmlParseSingleFeed(text)
+  try {
+    var entries = await fetch(url)
+      .then((response) => response.text())
+      .then((text) => {
 
-      cache[url] = { "time": new Date(), "entries": parsed }
-      return parsed
-    });
-  return await entries
+        var parsed = xmlParseSingleFeed(text)
+
+        cache[url] = { "time": new Date(), "entries": parsed }
+        return parsed
+      });
+  } catch (error) {
+    console.log("fetch error")
+    entries = []
+  }
+  return entries
 }
 
 function recentCacheAvailable(xmlUrl, disableOutput = false) {
@@ -149,21 +155,24 @@ async function getVideoDetails(videoIds) {
   } else {
     const items = []
 
-    while (videoIds.length > 0) { //youtube api call can only handle 50 ids at a time
-      const currentPassEnd = videoIds.length > 50 ? 50 : videoIds.length
-      const currentBatch = videoIds.slice(0, currentPassEnd)
-      videoIds = videoIds.slice(currentPassEnd)
+    try{
+      while (videoIds.length > 0) { //youtube api call can only handle 50 ids at a time
+        const currentPassEnd = videoIds.length > 50 ? 50 : videoIds.length
+        const currentBatch = videoIds.slice(0, currentPassEnd)
+        videoIds = videoIds.slice(currentPassEnd)
 
-      const idList = currentBatch.map((id) => "&id=" + id).join("")
-      const url = "https://www.googleapis.com/youtube/v3/videos?part=contentDetails&key=" + YOUTUBE_API_KEY + idList;
+        const idList = currentBatch.map((id) => "&id=" + id).join("")
+        const url = "https://www.googleapis.com/youtube/v3/videos?part=contentDetails&key=" + YOUTUBE_API_KEY + idList;
 
-      await fetch(url)
-        .then((response) => response.json())
-        .then((content) => {
-          items.push(...content["items"])
-        });
+        await fetch(url)
+          .then((response) => response.json())
+          .then((content) => {
+            items.push(...content["items"])
+          });
+      }
+    } catch (error){
+      console.log("fetch error")
     }
-
     return items
   }
 }
@@ -254,8 +263,8 @@ function setSeen(urls) {
       // console.log(entry["url"])
       if (justUrls.includes(entry["url"])) {
         seenStatus = urls.find((urlEntry) => urlEntry["url"] == entry["url"])["seen"] ? 1 : 0
-        console.log("updated seenStatus for " + entry["url"]+ " to " + seenStatus)
-        entry["seen"] = seenStatus 
+        console.log("updated seenStatus for " + entry["url"] + " to " + seenStatus)
+        entry["seen"] = seenStatus
       }
     }
   }
